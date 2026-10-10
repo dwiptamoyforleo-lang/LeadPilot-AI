@@ -322,6 +322,47 @@ export function simulateCustomerResponse(
 }
 
 // Available Slot Generator based on business settings and existing appointments
+/**
+ * Parse a generated appointment label (for example, "9:00 AM - 9:45 AM")
+ * into minutes after midnight. Return null for legacy or unknown formats.
+ */
+function parseTimeSlot(slot: string): { start: number; end: number } | null {
+  const match = slot.match(/^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$/i);
+  if (!match) return null;
+
+  const toMinutes = (hourText: string, minuteText: string, periodText: string) => {
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
+    const period = periodText.toUpperCase();
+
+    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+    return ((hour % 12) + (period === 'PM' ? 12 : 0)) * 60 + minute;
+  };
+
+  const start = toMinutes(match[1], match[2], match[3]);
+  const end = toMinutes(match[4], match[5], match[6]);
+  if (start === null || end === null || end <= start) return null;
+  return { start, end };
+}
+
+/**
+ * Returns true when two appointment ranges overlap, including the configured
+ * buffer around existing appointments. Unknown legacy labels conflict only
+ * when their text exactly matches, which is safer than assuming they are free.
+ */
+export function timeSlotsConflict(
+  slotA: string,
+  slotB: string,
+  bufferMinutes = 0
+): boolean {
+  const a = parseTimeSlot(slotA);
+  const b = parseTimeSlot(slotB);
+  if (!a || !b) return slotA === slotB;
+
+  const buffer = Number.isFinite(bufferMinutes) ? Math.max(0, bufferMinutes) : 0;
+  return a.start < b.end + buffer && a.end > b.start - buffer;
+}
+
 export function getAvailableSlots(
   dateStr: string, // YYYY-MM-DD
   settings: BusinessSettings,
@@ -335,8 +376,6 @@ export function getAvailableSlots(
   const activeAppointmentsOnDate = existingAppointments.filter(
     (a) => a.date === dateStr && a.status !== 'cancelled'
   );
-
-  const bookedSlots = new Set(activeAppointmentsOnDate.map((a) => a.timeSlot));
 
   const slots: { slot: string; isAvailable: boolean }[] = [];
   let currentTotalMinutes = startHour * 60 + startMin;
@@ -356,7 +395,9 @@ export function getAvailableSlots(
     };
 
     const slotLabel = `${formatTime(sH, sM)} - ${formatTime(eH, eM)}`;
-    const isAvailable = !bookedSlots.has(slotLabel);
+    const isAvailable = !activeAppointmentsOnDate.some((appointment) =>
+      timeSlotsConflict(slotLabel, appointment.timeSlot, settings.bufferMinutes)
+    );
 
     slots.push({
       slot: slotLabel,
