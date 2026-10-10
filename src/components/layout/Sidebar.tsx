@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { WorkspaceTab } from '../../types';
 import {
   LayoutDashboard,
   Users,
@@ -30,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   onCloseMobile,
 }) => {
-  const { activeTab, setActiveTab, leads, appointments, isDemoActive, demoCurrentStep } = useApp();
+  const { activeTab, setActiveTab, setCurrentPage, leads, appointments, isDemoActive, demoCurrentStep } = useApp();
 
   const awaitingCount = leads.filter((l) => l.status === 'Awaiting Reply' || l.status === 'New').length;
   const dueFollowUpsCount = leads.filter(
@@ -89,7 +90,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const handleNavClick = (tabId: string) => {
-    setActiveTab(tabId);
+    if (tabId === 'guided_demo') {
+      setCurrentPage('guided_demo');
+    } else {
+      setActiveTab(tabId as WorkspaceTab);
+    }
     if (isOpenMobile) {
       onCloseMobile();
     }

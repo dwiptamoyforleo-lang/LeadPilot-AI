@@ -4,9 +4,8 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(() => ({
-  // This repository is deployed as a GitHub Pages project site.
-  // Keep the asset paths under /LeadPilot-AI/ instead of the domain root.
-  base: '/LeadPilot-AI/',
+  // Adapt base for local/preview vs GitHub Pages
+  base: process.env.BUILD_FOR_GHP ? '/LeadPilot-AI/' : './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

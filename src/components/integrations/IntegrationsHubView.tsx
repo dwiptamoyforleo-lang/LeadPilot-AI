@@ -10,6 +10,7 @@ import {
   Database,
   Lock,
   Download,
+  Upload,
   CheckCircle2,
   ExternalLink,
   Code2,
@@ -19,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const IntegrationsHubView: React.FC = () => {
-  const { leads, appointments, businessSettings } = useApp();
+  const { leads, appointments, businessSettings, importDataJSON, showToast } = useApp();
   const [copiedWebhook, setCopiedWebhook] = useState(false);
 
   const handleExportData = () => {
@@ -39,6 +40,19 @@ export const IntegrationsHubView: React.FC = () => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    showToast('Exported workspace JSON backup', 'success');
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      importDataJSON(content);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const integrations = [
@@ -129,13 +143,26 @@ export const IntegrationsHubView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleExportData}
-          className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 shadow-sm"
-        >
-          <Download className="h-4 w-4" />
-          <span>Export All Data (JSON)</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 shadow-2xs cursor-pointer transition-colors">
+            <Upload className="h-3.5 w-3.5 text-slate-500" />
+            <span>Import JSON</span>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+          </label>
+
+          <button
+            onClick={handleExportData}
+            className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 shadow-sm"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export Data (JSON)</span>
+          </button>
+        </div>
       </div>
 
       {/* Zero Cost Banner */}

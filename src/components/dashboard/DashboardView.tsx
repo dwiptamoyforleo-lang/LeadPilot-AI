@@ -20,6 +20,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { INDUSTRY_PRESETS } from '../../data/initialData';
+import { WorkspaceTab } from '../../types';
 
 interface DashboardViewProps {
   onOpenAddLeadModal: () => void;
@@ -62,7 +63,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenAddLeadModal
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4);
 
-  const stats = [
+  const stats: {
+    title: string;
+    value: number;
+    icon: any;
+    trend: string;
+    color: string;
+    actionTab: WorkspaceTab;
+  }[] = [
     {
       title: 'Total Leads',
       value: totalLeads,
@@ -128,14 +136,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenAddLeadModal
   return (
     <div className="space-y-6">
       {/* Top Banner: Industry & Guided Walkthrough Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-6 sm:p-8 text-white shadow-lg border border-slate-800">
+        <img
+          src="/src/assets/images/hero_command_center_1791641694620.jpg"
+          alt="Consultancy Command Center"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 h-full w-full object-cover opacity-20 pointer-events-none mix-blend-overlay"
+          onError={(e) => {
+            (e.target as HTMLElement).style.display = 'none';
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/90 to-indigo-950/80 pointer-events-none" />
         <div className="relative z-10 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-300 backdrop-blur border border-indigo-400/30">
-                Active Business Profile
+            <div className="flex items-center gap-2 text-xs text-slate-300">
+              <span className="font-bold tracking-wider uppercase text-indigo-400 text-[11px]">
+                Active Profile
               </span>
-              <span className="text-xs text-slate-300">
+              <span aria-hidden="true">·</span>
+              <span>
                 Industry: <strong className="text-white capitalize">{businessSettings.industry.replace('_', ' ')}</strong>
               </span>
             </div>
@@ -209,7 +228,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenAddLeadModal
                 </div>
               </div>
               <div className="mt-2 flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums font-mono">
                   {stat.value}
                 </span>
                 <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -325,18 +344,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenAddLeadModal
                   key={appt.id}
                   className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-300">
-                        {appt.type}
-                      </span>
-                      <h4 className="mt-1 text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="font-semibold text-indigo-600 dark:text-indigo-400 capitalize">
+                          {appt.type.replace('_', ' ')}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span className="capitalize text-emerald-600 dark:text-emerald-400 font-medium">
+                          {appt.status}
+                        </span>
+                      </div>
+                      <h4 className="mt-0.5 text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
                         {appt.title}
                       </h4>
                     </div>
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                      {appt.status}
-                    </span>
                   </div>
 
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">

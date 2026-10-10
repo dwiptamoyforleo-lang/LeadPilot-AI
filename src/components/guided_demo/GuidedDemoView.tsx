@@ -29,6 +29,7 @@ export const GuidedDemoView: React.FC = () => {
     setDemoCurrentStep,
     addLead,
     setSelectedLeadId,
+    setCurrentPage,
     setActiveTab,
     addMessageToLead,
     approveAndSendDraft,
@@ -533,14 +534,20 @@ export const GuidedDemoView: React.FC = () => {
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => setActiveTab('dashboard')}
+                  onClick={() => {
+                    setCurrentPage('workspace');
+                    setActiveTab('dashboard');
+                  }}
                   className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm"
                 >
                   <span>View Live Dashboard</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setActiveTab('appointments')}
+                  onClick={() => {
+                    setCurrentPage('workspace');
+                    setActiveTab('appointments');
+                  }}
                   className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   <span>View Appointments Table</span>

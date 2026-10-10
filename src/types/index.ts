@@ -143,3 +143,29 @@ export interface ActivityEvent {
   type: 'lead_created' | 'status_changed' | 'message_sent' | 'appointment_booked' | 'qualified' | 'followup_done';
   leadId?: string;
 }
+
+export type NavigationPage =
+  | 'workspace'
+  | 'solutions'
+  | 'capabilities'
+  | 'roi_calculator'
+  | 'guided_demo'
+  | 'faq'
+  | 'compliance';
+
+export type WorkspaceTab =
+  | 'dashboard'
+  | 'leads'
+  | 'assistant'
+  | 'followups'
+  | 'appointments'
+  | 'settings'
+  | 'integrations';
+
+export interface ToastNotification {
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  message: string;
+  duration?: number;
+}
+

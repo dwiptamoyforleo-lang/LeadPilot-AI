@@ -7,6 +7,9 @@ import {
   LeadStatus,
   ConversationMessage,
   QualificationData,
+  NavigationPage,
+  WorkspaceTab,
+  ToastNotification,
 } from '../types';
 import {
   INDUSTRY_PRESETS,
@@ -27,12 +30,19 @@ interface AppContextType {
   appointments: Appointment[];
   businessSettings: BusinessSettings;
   activityHistory: ActivityEvent[];
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  currentPage: NavigationPage;
+  setCurrentPage: (page: NavigationPage) => void;
+  activeTab: WorkspaceTab;
+  setActiveTab: (tab: WorkspaceTab) => void;
   selectedLeadId: string | null;
   setSelectedLeadId: (id: string | null) => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+
+  // Toast notifications
+  toasts: ToastNotification[];
+  showToast: (message: string, type?: 'success' | 'info' | 'warning' | 'error', duration?: number) => void;
+  removeToast: (id: string) => void;
 
   // Lead operations
   addLead: (lead: Partial<Lead> & { name: string; enquiryDetails: string }) => Lead;
@@ -81,6 +91,7 @@ interface AppContextType {
   updateBusinessSettings: (settings: Partial<BusinessSettings>) => void;
   switchIndustryPreset: (industryKey: string) => void;
   resetDemoData: () => void;
+  importDataJSON: (jsonString: string) => boolean;
 
   // Guided Interactive Demo
   isDemoActive: boolean;
@@ -99,6 +110,8 @@ const STORAGE_KEYS = {
   SETTINGS: 'leadpilot_settings_v1',
   ACTIVITIES: 'leadpilot_activities_v1',
   THEME: 'leadpilot_theme_v1',
+  PAGE: 'leadpilot_page_v1',
+  TAB: 'leadpilot_tab_v1',
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -108,6 +121,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved !== null) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+
+  // Top level page navigation
+  const [currentPage, setCurrentPage] = useState<NavigationPage>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.PAGE);
+    if (saved) return saved as NavigationPage;
+    return 'workspace';
+  });
+
+  // Workspace active tab
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TAB);
+    if (saved) return saved as WorkspaceTab;
+    return 'dashboard';
+  });
+
+  // Toast notifications
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success', duration = 3500) => {
+    const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+    const newToast: ToastNotification = { id, type, message, duration };
+    setToasts((prev) => [...prev, newToast]);
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, duration);
+    }
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   // Business settings
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings>(() => {
@@ -161,8 +206,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_ACTIVITIES;
   });
 
-  // UI state
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  // Selected Lead state
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   // Guided demo state
@@ -178,6 +222,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     localStorage.setItem(STORAGE_KEYS.THEME, isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
+
+  // Sync page and tab navigation
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PAGE, currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TAB, activeTab);
+  }, [activeTab]);
 
   // Sync data to localStorage
   useEffect(() => {
@@ -264,6 +317,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setLeads((prev) => [baseLead, ...prev]);
     addActivity('New Lead Added', `${baseLead.name} (${businessSettings.industry.replace('_', ' ')}) submitted an enquiry.`, 'lead_created', leadId);
+    showToast(`Inbound lead created for ${baseLead.name}`, 'success');
     return baseLead;
   };
 
@@ -275,6 +329,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return updated;
       })
     );
+    showToast('Lead details updated', 'info');
   };
 
   const deleteLead = (id: string) => {
@@ -287,6 +342,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     if (leadToDelete) {
       addActivity('Lead Deleted', `Removed record for ${leadToDelete.name}.`, 'status_changed');
+      showToast(`Removed lead record for ${leadToDelete.name}`, 'warning');
     }
   };
 
@@ -299,6 +355,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     const target = leads.find((l) => l.id === id);
     addActivity('Status Updated', `${target?.name || 'Lead'} moved to "${newStatus}".`, 'status_changed', id);
+    showToast(`Status updated to "${newStatus}"`, 'info');
   };
 
   const addLeadNote = (id: string, note: string) => {
@@ -309,6 +366,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return { ...lead, notes: [note.trim(), ...lead.notes] };
       })
     );
+    showToast('Note added to lead file', 'info');
   };
 
   const addMessageToLead = (
@@ -382,6 +440,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     const target = leads.find((l) => l.id === leadId);
     addActivity('Simulated Message Sent', `Message draft approved and dispatched to ${target?.name || 'Lead'}.`, 'message_sent', leadId);
+    showToast(`Draft sent (simulated) to ${target?.name || 'Lead'}`, 'success');
   };
 
   const discardDraft = (leadId: string, messageId: string) => {
@@ -394,6 +453,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       })
     );
+    showToast('Message draft discarded', 'info');
   };
 
   const simulateCustomerReplyForLead = (
@@ -428,6 +488,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     addActivity('Customer Reply Simulated', `${targetLead.name} replied in conversation thread.`, 'message_sent', leadId);
+    showToast(`Simulated customer reply from ${targetLead.name}`, 'info');
   };
 
   const qualifyLeadDirectly = (leadId: string, updates: Partial<QualificationData>) => {
@@ -449,6 +510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     const target = leads.find((l) => l.id === leadId);
     addActivity('Lead Marked Qualified', `${target?.name || 'Lead'} confirmed as Qualified. Ready for Appointment Booking.`, 'qualified', leadId);
+    showToast(`${target?.name || 'Lead'} marked as Qualified`, 'success');
   };
 
   const isSlotAvailable = (
@@ -474,6 +536,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ): Appointment => {
     // Check double booking
     if (!isSlotAvailable(apptInput.date, apptInput.timeSlot)) {
+      showToast(`Slot ${apptInput.timeSlot} is already booked!`, 'error');
       throw new Error(`Slot ${apptInput.timeSlot} on ${apptInput.date} is already booked!`);
     }
 
@@ -508,6 +571,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'appointment_booked',
       apptInput.leadId
     );
+    showToast(`Appointment confirmed for ${apptInput.leadName}`, 'success');
 
     return newAppt;
   };
@@ -518,6 +582,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     newTimeSlot: string
   ) => {
     if (!isSlotAvailable(newDate, newTimeSlot, id)) {
+      showToast(`Slot conflict: ${newTimeSlot} is unavailable!`, 'error');
       throw new Error(`Slot ${newTimeSlot} on ${newDate} is already booked!`);
     }
 
@@ -541,6 +606,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'appointment_booked',
         appt.leadId
       );
+      showToast(`Appointment rescheduled to ${newDate} (${newTimeSlot})`, 'info');
     }
   };
 
@@ -562,6 +628,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
       );
       addActivity('Appointment Cancelled', `${targetAppt.leadName}'s appointment cancelled.`, 'status_changed', targetAppt.leadId);
+      showToast(`Appointment for ${targetAppt.leadName} cancelled`, 'warning');
     }
   };
 
@@ -577,6 +644,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     const target = leads.find((l) => l.id === leadId);
     addActivity('Follow-Up Completed', `Marked follow-up completed for ${target?.name || 'Lead'}.`, 'followup_done', leadId);
+    showToast(`Follow-up completed for ${target?.name || 'Lead'}`, 'success');
   };
 
   const scheduleNextFollowUp = (leadId: string, daysAhead: number) => {
@@ -595,6 +663,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     const target = leads.find((l) => l.id === leadId);
     addActivity('Follow-Up Scheduled', `Next follow-up for ${target?.name} set for ${nextDate}.`, 'status_changed', leadId);
+    showToast(`Next follow-up for ${target?.name} set for ${nextDate}`, 'info');
   };
 
   const updateBusinessSettings = (updates: Partial<BusinessSettings>) => {
@@ -602,6 +671,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       ...updates,
     }));
+    showToast('Business settings saved', 'success');
   };
 
   const switchIndustryPreset = (industryKey: string) => {
@@ -609,6 +679,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (preset) {
       setBusinessSettings(preset);
       addActivity('Industry Preset Applied', `Loaded configurations for ${preset.businessName} (${industryKey}).`, 'status_changed');
+      showToast(`Applied preset: ${preset.businessName}`, 'info');
     }
   };
 
@@ -624,13 +695,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem(STORAGE_KEYS.APPOINTMENTS);
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
     localStorage.removeItem(STORAGE_KEYS.ACTIVITIES);
+    showToast('Demo data restored to initial state', 'info');
+  };
+
+  const importDataJSON = (jsonString: string): boolean => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (parsed.leads && Array.isArray(parsed.leads)) {
+        setLeads(parsed.leads);
+      }
+      if (parsed.appointments && Array.isArray(parsed.appointments)) {
+        setAppointments(parsed.appointments);
+      }
+      if (parsed.businessSettings && typeof parsed.businessSettings === 'object') {
+        setBusinessSettings(parsed.businessSettings);
+      }
+      showToast('Successfully imported workspace data', 'success');
+      return true;
+    } catch (err: any) {
+      showToast('Invalid JSON file format', 'error');
+      return false;
+    }
   };
 
   // Guided demo controls
   const startGuidedDemo = () => {
     setIsDemoActive(true);
     setDemoCurrentStep(1);
-    setActiveTab('guided_demo');
+    setCurrentPage('workspace');
+    setActiveTab('dashboard');
   };
 
   const advanceDemoStep = () => {
@@ -649,12 +742,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointments,
         businessSettings,
         activityHistory,
+        currentPage,
+        setCurrentPage,
         activeTab,
         setActiveTab,
         selectedLeadId,
         setSelectedLeadId,
         isDarkMode,
         toggleDarkMode,
+        toasts,
+        showToast,
+        removeToast,
         addLead,
         updateLead,
         deleteLead,
@@ -674,6 +772,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateBusinessSettings,
         switchIndustryPreset,
         resetDemoData,
+        importDataJSON,
         isDemoActive,
         demoCurrentStep,
         startGuidedDemo,

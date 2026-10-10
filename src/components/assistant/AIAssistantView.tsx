@@ -34,7 +34,9 @@ import {
   Mail,
   Clock,
   ArrowRight,
+  Brain,
 } from 'lucide-react';
+import { DeepThinkingModal } from './DeepThinkingModal';
 
 interface AIAssistantViewProps {
   onOpenBookAppointment: (lead: Lead) => void;
@@ -65,8 +67,20 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
   const [manualDraftText, setManualDraftText] = useState('');
   const [copiedDraftId, setCopiedDraftId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDeepThinkingOpen, setIsDeepThinkingOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleApplyThinkingDraft = (draftText: string, rationale: string) => {
+    addMessageToLead(currentLead.id, {
+      sender: 'ai',
+      content: draftText,
+      channel: activeChannel,
+      isDraft: true,
+      draftStatus: 'pending_review',
+      aiRationale: rationale,
+    });
+  };
 
   // Sync preferred contact channel when lead changes
   useEffect(() => {
@@ -319,6 +333,16 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
                 <span>Book Slot</span>
               </button>
             )}
+
+            <button
+              onClick={() => setIsDeepThinkingOpen(true)}
+              disabled={currentLead.optedOut}
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 transition-all ml-auto"
+              title="Activate Deep Thinking Mode (gemini-3.1-pro-preview with ThinkingLevel.HIGH)"
+            >
+              <Brain className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Thinking Mode</span>
+            </button>
           </div>
 
           {/* Message Thread Scroll Area */}
@@ -619,6 +643,15 @@ export const AIAssistantView: React.FC<AIAssistantViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Deep Thinking Mode Modal (gemini-3.1-pro-preview with ThinkingLevel.HIGH) */}
+      <DeepThinkingModal
+        isOpen={isDeepThinkingOpen}
+        onClose={() => setIsDeepThinkingOpen(false)}
+        lead={currentLead}
+        businessSettings={businessSettings}
+        onApplyDraft={handleApplyThinkingDraft}
+      />
     </div>
   );
 };

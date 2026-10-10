@@ -18,6 +18,7 @@ import {
   AlertCircle,
   LayoutGrid,
   List,
+  Download,
 } from 'lucide-react';
 import { AddLeadModal } from './AddLeadModal';
 import { EditLeadModal } from './EditLeadModal';
@@ -36,6 +37,7 @@ export const LeadManagementView: React.FC<LeadManagementViewProps> = ({
     changeLeadStatus,
     setSelectedLeadId,
     setActiveTab,
+    showToast,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +50,31 @@ export const LeadManagementView: React.FC<LeadManagementViewProps> = ({
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [inspectingLead, setInspectingLead] = useState<Lead | null>(null);
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+
+  const handleExportCSV = () => {
+    const headers = ['Name', 'Email', 'Phone', 'Channel', 'Status', 'Score', 'Source', 'Need', 'Budget', 'Created'];
+    const rows = filteredLeads.map((l) => [
+      `"${l.name.replace(/"/g, '""')}"`,
+      `"${l.email.replace(/"/g, '""')}"`,
+      `"${l.phone.replace(/"/g, '""')}"`,
+      `"${l.preferredContactMethod}"`,
+      `"${l.status}"`,
+      l.qualification.score,
+      `"${l.source}"`,
+      `"${(l.qualification.need || '').replace(/"/g, '""')}"`,
+      `"${(l.qualification.budget || '').replace(/"/g, '""')}"`,
+      `"${l.createdAt}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `leadpilot-leads-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast(`Exported ${filteredLeads.length} leads to CSV`, 'success');
+  };
 
   // Filtered leads
   const filteredLeads = leads.filter((lead) => {
@@ -144,8 +171,17 @@ export const LeadManagementView: React.FC<LeadManagementViewProps> = ({
           </div>
 
           <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors shadow-2xs"
+            title="Download CSV of current filtered leads"
+          >
+            <Download className="h-3.5 w-3.5 text-slate-500" />
+            <span className="hidden sm:inline">Export CSV</span>
+          </button>
+
+          <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
             <span>Add Lead</span>
@@ -294,9 +330,7 @@ export const LeadManagementView: React.FC<LeadManagementViewProps> = ({
                       <select
                         value={lead.status}
                         onChange={(e) => changeLeadStatus(lead.id, e.target.value as LeadStatus)}
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold border-0 outline-hidden cursor-pointer ${getStatusBadge(
-                          lead.status
-                        )}`}
+                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
                       >
                         <option value="New">New</option>
                         <option value="Contacted">Contacted</option>
@@ -322,7 +356,7 @@ export const LeadManagementView: React.FC<LeadManagementViewProps> = ({
                             style={{ width: `${lead.qualification.score}%` }}
                           />
                         </div>
-                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 font-mono tabular-nums">
                           {lead.qualification.score}%
                         </span>
                       </div>
