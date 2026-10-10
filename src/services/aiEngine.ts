@@ -40,13 +40,13 @@ export function extractLeadIntelligence(
   ];
 
   const optOutPatterns = [
-    /^\\s*(?:please\\s+)?(?:stop|unsubscribe|cancel|end)\\s*[.!]*\\s*$/i,
-    /\\b(?:please\\s+)?stop\\s+(?:all\\s+)?(?:messages|texts|calls|contacting|messaging|texting|calling)\\b/i,
-    /\\b(?:remove me|take me off)\\s+(?:your\\s+)?(?:list|database|contact list)\\b/i,
-    /\\b(?:do not|don't)\\s+(?:contact|message|text|call)\\s+me\\b/i,
-    /\\bno more (?:messages|texts|calls)\\b/i,
-    /\\bnot interested\\b/i,
-    /\\bwrong number\\b/i,
+    /^\s*(?:please\s+)?(?:stop|unsubscribe|cancel|end)\s*[.!]*\s*$/i,
+    /\b(?:please\s+)?stop\s+(?:all\s+)?(?:messages|texts|calls|contacting|messaging|texting|calling)\b/i,
+    /\b(?:remove me|take me off)\s+(?:your\s+)?(?:list|database|contact list)\b/i,
+    /\b(?:do not|don't)\s+(?:contact|message|text|call)\s+me\b/i,
+    /\bno more (?:messages|texts|calls)\b/i,
+    /\bnot interested\b/i,
+    /\bwrong number\b/i,
   ];
 
   const isOptOut = customerMessages.some((message) =>
