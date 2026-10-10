@@ -29,13 +29,29 @@ export function extractLeadIntelligence(
     ...lead.messages.map((m) => m.content),
   ].join(' ').toLowerCase();
 
-  const isOptOut =
-    fullText.includes('stop') ||
-    fullText.includes('not interested') ||
-    fullText.includes('unsubscribe') ||
-    fullText.includes('remove me') ||
-    fullText.includes('do not contact') ||
-    fullText.includes('wrong number');
+  // Only customer-authored messages should trigger opt-out detection.
+  // Searching all conversation text for "stop" caused false positives for
+  // ordinary phrases such as "the technician stopped by".
+  const customerMessages = [
+    lead.enquiryDetails,
+    ...lead.messages
+      .filter((message) => message.sender === 'customer')
+      .map((message) => message.content),
+  ];
+
+  const optOutPatterns = [
+    /^\\s*(?:please\\s+)?(?:stop|unsubscribe|cancel|end)\\s*[.!]*\\s*$/i,
+    /\\b(?:please\\s+)?stop\\s+(?:all\\s+)?(?:messages|texts|calls|contacting|messaging|texting|calling)\\b/i,
+    /\\b(?:remove me|take me off)\\s+(?:your\\s+)?(?:list|database|contact list)\\b/i,
+    /\\b(?:do not|don't)\\s+(?:contact|message|text|call)\\s+me\\b/i,
+    /\\bno more (?:messages|texts|calls)\\b/i,
+    /\\bnot interested\\b/i,
+    /\\bwrong number\\b/i,
+  ];
+
+  const isOptOut = customerMessages.some((message) =>
+    optOutPatterns.some((pattern) => pattern.test(message.trim()))
+  );
 
   // Need extraction
   let need = 'General enquiry';
