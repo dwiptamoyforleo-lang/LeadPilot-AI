@@ -18,6 +18,7 @@ import {
   extractLeadIntelligence,
   generateFirstResponseDraft,
   simulateCustomerResponse,
+  timeSlotsConflict,
   CustomerScenario,
 } from '../services/aiEngine';
 
@@ -456,11 +457,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     excludeApptId?: string
   ): boolean => {
     return !appointments.some(
-      (a) =>
-        a.date === date &&
-        a.timeSlot === timeSlot &&
-        a.status !== 'cancelled' &&
-        a.id !== excludeApptId
+      (appointment) =>
+        appointment.date === date &&
+        appointment.status !== 'cancelled' &&
+        appointment.id !== excludeApptId &&
+        timeSlotsConflict(
+          timeSlot,
+          appointment.timeSlot,
+          businessSettings.bufferMinutes
+        )
     );
   };
 
