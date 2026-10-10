@@ -1,0 +1,6 @@
+{
+  "name": "LeadPilot AI - AI Lead Follow-Up & Appointment Setter",
+  "description": "Smart, zero-cost AI lead qualification, polite follow-ups, and automated appointment setting for modern businesses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
